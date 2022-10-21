@@ -4,9 +4,9 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub mod editor_content;
 pub mod editor_output;
+pub mod editor_rows;
 pub mod keyboard;
 pub mod utils;
-pub mod editor_rows;
 
 pub struct Editor {
     pub keyboard: Keyboard,
@@ -16,7 +16,7 @@ pub struct Editor {
 impl Editor {
     pub fn new() -> Self {
         Self {
-            keyboard: Keyboard::new(),
+            keyboard: Keyboard,
             output: Output::new(),
         }
     }
