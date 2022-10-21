@@ -1,4 +1,7 @@
-use std::{io::{stdout, Write}, cmp};
+use std::{
+    cmp,
+    io::{stdout, Write},
+};
 
 use crossterm::{
     cursor,
@@ -30,7 +33,8 @@ impl Output {
     }
 
     pub fn move_cursor(&mut self, direction: KeyCode) {
-        self.cursor.move_cursor(direction);
+        self.cursor
+            .move_cursor(direction, self.rows.number_of_rows());
     }
 
     pub fn clear_screen() -> crossterm::Result<()> {
@@ -39,10 +43,11 @@ impl Output {
     }
 
     pub fn refresh_screen(&mut self) -> crossterm::Result<()> {
+        self.cursor.scroll();
         queue!(self.content, cursor::Hide, cursor::MoveTo(0, 0))?;
         self.draw_rows();
         let cursor_x = self.cursor.x;
-        let cursor_y = self.cursor.y;
+        let cursor_y = self.cursor.y - self.cursor.row_offset;
         queue!(
             self.content,
             cursor::MoveTo(cursor_x as u16, cursor_y as u16),
@@ -55,8 +60,9 @@ impl Output {
         let screen_rows = self.win_size.1;
         let screen_columns = self.win_size.0;
         for row in 0..screen_rows {
-            if row >= self.rows.number_of_rows() {
-                if row == screen_rows / 8 {
+            let file_row = row + self.cursor.row_offset;
+            if file_row >= self.rows.number_of_rows() {
+                if self.rows.number_of_rows() == 0 && row == screen_rows / 8 {
                     let mut welcome = format!("Twin Planets Editor");
                     if welcome.len() > screen_columns {
                         welcome.truncate(screen_columns)
@@ -73,17 +79,16 @@ impl Output {
                 } else {
                     self.content.push('~');
                 }
-
-                queue!(self.content, terminal::Clear(ClearType::UntilNewLine)).unwrap();
-
-                if row < screen_rows - 1 {
-                    self.content.push_str("\r\n")
-                }
-                stdout().flush().unwrap();
             } else {
-                let len = cmp::min(self.rows.get_row().len(), screen_columns);
-                self.content
-                    .push_str(&self.rows.get_row()[..len])
+                let mut row = self.rows.get_row(file_row).to_string();
+                row.truncate(screen_columns);
+                self.content.push_str(&row)
+            }
+
+            queue!(self.content, terminal::Clear(ClearType::UntilNewLine)).unwrap();
+
+            if row < screen_rows - 1 {
+                self.content.push_str("\r\n")
             }
         }
     }
@@ -93,7 +98,8 @@ pub struct CursorController {
     x: usize,
     y: usize,
     screen_columns: usize,
-    _screen_rows: usize,
+    screen_rows: usize,
+    row_offset: usize,
 }
 
 impl CursorController {
@@ -102,27 +108,41 @@ impl CursorController {
             x: 0,
             y: 0,
             screen_columns: win_size.0,
-            _screen_rows: win_size.1,
+            screen_rows: win_size.1,
+            row_offset: 0,
         }
     }
 
-    pub fn move_cursor(&mut self, direction: KeyCode) {
+    pub fn move_cursor(&mut self, direction: KeyCode, number_of_rows: usize) {
         match direction {
             KeyCode::Up => {
                 self.y = self.y.saturating_sub(1);
             }
             KeyCode::Left => {
-                self.x = self.x.saturating_sub(1);
+                if self.x != 0 {
+                    self.x -= 1;
+                }
             }
             KeyCode::Down => {
-                self.y = self.y.saturating_add(1);
+                if self.y < number_of_rows {
+                    self.y = self.y + 1;
+                }
             }
             KeyCode::Right => {
-                self.x = self.x.saturating_add(1);
+                if self.x != self.screen_columns - 1 {
+                    self.x += 1;
+                }
             }
             KeyCode::End => self.x = self.screen_columns - 1,
             KeyCode::Home => self.x = 0,
             _ => unimplemented!(),
+        }
+    }
+
+    fn scroll(&mut self) {
+        self.row_offset = cmp::min(self.row_offset, self.y);
+        if self.y >= self.row_offset + self.screen_rows {
+            self.row_offset = self.y - self.screen_rows + 1;
         }
     }
 }
