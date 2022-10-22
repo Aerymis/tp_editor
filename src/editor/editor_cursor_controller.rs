@@ -56,7 +56,11 @@ impl CursorController {
                     }
                 }
             }
-            KeyCode::End => self.x = self.screen_columns - 1,
+            KeyCode::End => {
+                if self.y < number_of_rows {
+                    self.x = editor_rows.get_row(self.y).row_content.len()
+                }
+            }
             KeyCode::Home => self.x = 0,
             _ => unimplemented!(),
         }

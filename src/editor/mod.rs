@@ -1,9 +1,10 @@
 use crate::editor::editor_output::Output;
 use crate::editor::keyboard::Keyboard;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use std::cmp;
 
-pub mod editor_cursor_controller;
 pub mod editor_content;
+pub mod editor_cursor_controller;
 pub mod editor_output;
 pub mod editor_rows;
 pub mod keyboard;
@@ -48,13 +49,24 @@ impl Editor {
                 code: val @ (KeyCode::PageUp | KeyCode::PageDown),
                 modifiers: KeyModifiers::NONE,
                 ..
-            } => (0..self.output.win_size.1).for_each(|_| {
-                self.output.move_cursor(if matches!(val, KeyCode::PageUp) {
-                    KeyCode::Up
+            } => {
+                if matches!(val, KeyCode::PageUp) {
+                    self.output.cursor.y = self.output.cursor.row_offset;
                 } else {
-                    KeyCode::Down
-                });
-            }),
+                    self.output.cursor.y = cmp::min(
+                        self.output.win_size.1 + self.output.cursor.row_offset - 1,
+                        self.output.rows.number_of_rows(),
+                    );
+                }
+
+                (0..self.output.win_size.1).for_each(|_| {
+                    self.output.move_cursor(if matches!(val, KeyCode::PageUp) {
+                        KeyCode::Up
+                    } else {
+                        KeyCode::Down
+                    });
+                })
+            }
             _ => {}
         }
 
