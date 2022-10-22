@@ -2,6 +2,7 @@ use crate::editor::editor_output::Output;
 use crate::editor::keyboard::Keyboard;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
+pub mod editor_cursor_controller;
 pub mod editor_content;
 pub mod editor_output;
 pub mod editor_rows;
