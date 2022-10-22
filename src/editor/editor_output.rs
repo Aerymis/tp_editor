@@ -10,7 +10,10 @@ use crossterm::{
     terminal::{self, ClearType},
 };
 
-use super::{editor_content::EditorContent, editor_rows::EditorRows};
+use super::{
+    editor_content::EditorContent, editor_cursor_controller::CursorController,
+    editor_rows::EditorRows,
+};
 
 pub struct Output {
     pub win_size: (usize, usize),
@@ -33,8 +36,7 @@ impl Output {
     }
 
     pub fn move_cursor(&mut self, direction: KeyCode) {
-        self.cursor
-            .move_cursor(direction, self.rows.number_of_rows());
+        self.cursor.move_cursor(direction, &self.rows);
     }
 
     pub fn clear_screen() -> crossterm::Result<()> {
@@ -46,7 +48,7 @@ impl Output {
         self.cursor.scroll();
         queue!(self.content, cursor::Hide, cursor::MoveTo(0, 0))?;
         self.draw_rows();
-        let cursor_x = self.cursor.x;
+        let cursor_x = self.cursor.x - self.cursor.column_offset;
         let cursor_y = self.cursor.y - self.cursor.row_offset;
         queue!(
             self.content,
@@ -62,7 +64,7 @@ impl Output {
         for row in 0..screen_rows {
             let file_row = row + self.cursor.row_offset;
             if file_row >= self.rows.number_of_rows() {
-                if self.rows.number_of_rows() == 0 && row == screen_rows / 8 {
+                if self.rows.number_of_rows() == 0 && row == screen_rows / 3 {
                     let mut welcome = format!("Twin Planets Editor");
                     if welcome.len() > screen_columns {
                         welcome.truncate(screen_columns)
@@ -80,9 +82,11 @@ impl Output {
                     self.content.push('~');
                 }
             } else {
-                let mut row = self.rows.get_row(file_row).to_string();
-                row.truncate(screen_columns);
-                self.content.push_str(&row)
+                let row = self.rows.get_render(file_row);
+                let column_offset = self.cursor.column_offset;
+                let len = cmp::min(row.len().saturating_sub(column_offset), screen_columns);
+                let start = if len == 0 { 0 } else { column_offset };
+                self.content.push_str(&row[start..start + len]);
             }
 
             queue!(self.content, terminal::Clear(ClearType::UntilNewLine)).unwrap();
@@ -90,59 +94,6 @@ impl Output {
             if row < screen_rows - 1 {
                 self.content.push_str("\r\n")
             }
-        }
-    }
-}
-
-pub struct CursorController {
-    x: usize,
-    y: usize,
-    screen_columns: usize,
-    screen_rows: usize,
-    row_offset: usize,
-}
-
-impl CursorController {
-    fn new(win_size: (usize, usize)) -> CursorController {
-        Self {
-            x: 0,
-            y: 0,
-            screen_columns: win_size.0,
-            screen_rows: win_size.1,
-            row_offset: 0,
-        }
-    }
-
-    pub fn move_cursor(&mut self, direction: KeyCode, number_of_rows: usize) {
-        match direction {
-            KeyCode::Up => {
-                self.y = self.y.saturating_sub(1);
-            }
-            KeyCode::Left => {
-                if self.x != 0 {
-                    self.x -= 1;
-                }
-            }
-            KeyCode::Down => {
-                if self.y < number_of_rows {
-                    self.y = self.y + 1;
-                }
-            }
-            KeyCode::Right => {
-                if self.x != self.screen_columns - 1 {
-                    self.x += 1;
-                }
-            }
-            KeyCode::End => self.x = self.screen_columns - 1,
-            KeyCode::Home => self.x = 0,
-            _ => unimplemented!(),
-        }
-    }
-
-    fn scroll(&mut self) {
-        self.row_offset = cmp::min(self.row_offset, self.y);
-        if self.y >= self.row_offset + self.screen_rows {
-            self.row_offset = self.y - self.screen_rows + 1;
         }
     }
 }
