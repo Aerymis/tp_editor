@@ -1,15 +1,11 @@
 pub mod editor;
 
-use editor::{Editor, utils::CleanUp};
+use editor::{Editor};
 
 pub fn init_editor() -> crossterm::Result<()> {
     let mut editor = Editor::new();
     while editor.run()? {}
     Ok(())
-}
-
-pub fn clean_up() -> CleanUp {
-    CleanUp
 }
 
 #[cfg(test)]

@@ -15,6 +15,8 @@ use super::{
     editor_rows::EditorRows,
 };
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 pub struct Output {
     pub win_size: (usize, usize),
     pub content: EditorContent,
@@ -25,7 +27,7 @@ pub struct Output {
 impl Output {
     pub fn new() -> Self {
         let win_size = terminal::size()
-            .map(|(x, y)| (x as usize, y as usize))
+            .map(|(x, y)| (x as usize, y as usize - 1))
             .unwrap();
         Self {
             win_size,
@@ -65,7 +67,7 @@ impl Output {
             let file_row = row + self.cursor.row_offset;
             if file_row >= self.rows.number_of_rows() {
                 if self.rows.number_of_rows() == 0 && row == screen_rows / 3 {
-                    let mut welcome = format!("Twin Planets Editor");
+                    let mut welcome = format!("Twin Planets Editor -- version {}", VERSION);
                     if welcome.len() > screen_columns {
                         welcome.truncate(screen_columns)
                     }
@@ -91,9 +93,9 @@ impl Output {
 
             queue!(self.content, terminal::Clear(ClearType::UntilNewLine)).unwrap();
 
-            if row < screen_rows - 1 {
+            // if row < screen_rows - 1 {
                 self.content.push_str("\r\n")
-            }
+            // }
         }
     }
 }

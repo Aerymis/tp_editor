@@ -1,8 +1,8 @@
 use crossterm::terminal;
-use tp_editor_core::{init_editor, clean_up};
+use tp_editor_core::{editor::utils::CleanUp, init_editor};
 
 fn main() -> crossterm::Result<()> {
-    let _clean_up = clean_up();
+    let _clean_up = CleanUp;
     terminal::enable_raw_mode()?;
     init_editor()
 }

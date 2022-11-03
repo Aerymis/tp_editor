@@ -76,7 +76,7 @@ impl EditorRows {
     }
 
     pub fn get_render(&self, at: usize) -> &String {
-        &self.row_contents[at].render
+        &self.get_editor_row(at).render
     }
 
     fn get_editor_row(&self, at: usize) -> &Row {
