@@ -17,14 +17,14 @@ use super::{
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub struct Output {
+pub struct Document {
     pub win_size: (usize, usize),
     pub content: EditorContent,
     pub cursor: CursorController,
     pub rows: EditorRows,
 }
 
-impl Output {
+impl Document {
     pub fn new() -> Self {
         let win_size = terminal::size()
             .map(|(x, y)| (x as usize, y as usize - 1))

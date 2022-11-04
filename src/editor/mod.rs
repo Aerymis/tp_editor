@@ -1,29 +1,29 @@
-use crate::editor::editor_output::Output;
+use crate::editor::editor_document::Document;
 use crate::editor::keyboard::Keyboard;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::cmp;
 
 pub mod editor_content;
 pub mod editor_cursor_controller;
-pub mod editor_output;
+pub mod editor_document;
 pub mod editor_rows;
 pub mod keyboard;
 pub mod utils;
 
 pub struct Editor {
     pub keyboard: Keyboard,
-    pub output: Output,
+    pub document: Document,
 }
 
 impl Editor {
     pub fn new() -> Self {
         Self {
             keyboard: Keyboard,
-            output: Output::new(),
+            document: Document::new(),
         }
     }
     pub fn run(&mut self) -> crossterm::Result<bool> {
-        self.output.refresh_screen()?;
+        self.document.refresh_screen()?;
         self.process_keypress()
     }
 
@@ -44,23 +44,23 @@ impl Editor {
                     | KeyCode::End),
                 modifiers: KeyModifiers::NONE,
                 ..
-            } => self.output.move_cursor(direction),
+            } => self.document.move_cursor(direction),
             KeyEvent {
                 code: val @ (KeyCode::PageUp | KeyCode::PageDown),
                 modifiers: KeyModifiers::NONE,
                 ..
             } => {
                 if matches!(val, KeyCode::PageUp) {
-                    self.output.cursor.y = self.output.cursor.row_offset;
+                    self.document.cursor.y = self.document.cursor.row_offset;
                 } else {
-                    self.output.cursor.y = cmp::min(
-                        self.output.win_size.1 + self.output.cursor.row_offset - 1,
-                        self.output.rows.number_of_rows(),
+                    self.document.cursor.y = cmp::min(
+                        self.document.win_size.1 + self.document.cursor.row_offset - 1,
+                        self.document.rows.number_of_rows(),
                     );
                 }
 
-                (0..self.output.win_size.1).for_each(|_| {
-                    self.output.move_cursor(if matches!(val, KeyCode::PageUp) {
+                (0..self.document.win_size.1).for_each(|_| {
+                    self.document.move_cursor(if matches!(val, KeyCode::PageUp) {
                         KeyCode::Up
                     } else {
                         KeyCode::Down
